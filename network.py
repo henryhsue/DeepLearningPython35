@@ -120,22 +120,41 @@ class Network(object):
         gradient for the cost function C_x.  ``nabla_b`` and
         ``nabla_w`` are layer-by-layer lists of numpy arrays, similar
         to ``self.biases`` and ``self.weights``."""
+
+        # SETUP
+
         # cost gradients wrt biases and weights taking existing array shapes
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
-        # feedforward
-        activation = x
+        activation = x # first layer of activation are the inputs
         activations = [x] # list to store all the activations, layer by layer
+        # z is wx+b, the parameter to the sigmoid activation function.
         zs = [] # list to store all the z vectors, layer by layer
+
+        # FEEDFORWARD (aka calcualte activations layer by layer forward)
+
+        # calculate activates for each layer, layer by layer, 
         for b, w in zip(self.biases, self.weights):
+            # calculate z's elementwize for all the weights and biases
             z = np.dot(w, activation)+b
             zs.append(z)
+            # sigmoid() applies elementwise
             activation = sigmoid(z)
             activations.append(activation)
-        # backward pass
+
+        # BACKPROPAGATION
+
+        # starting at output layer calculate errors/costs for 
+        # each layer, layer by layer backwards.
+
+        # BP1
+        # multiple cost derivative (of MSE) with derivative of sigmoid.
+        # it turns out these are pretty simple derivaties. for derivations,
+        # see http://neuralnetworksanddeeplearning.com/chap2.html
         delta = self.cost_derivative(activations[-1], y) * \
             sigmoid_prime(zs[-1])
         nabla_b[-1] = delta
+        # BP2 transpose the weight matrix
         nabla_w[-1] = np.dot(delta, activations[-2].transpose())
         # Note that the variable l in the loop below is used a little
         # differently to the notation in Chapter 2 of the book.  Here,
@@ -147,10 +166,14 @@ class Network(object):
             z = zs[-l]
             sp = sigmoid_prime(z)
             delta = np.dot(self.weights[-l+1].transpose(), delta) * sp
+            # see derivations in http://neuralnetworksanddeeplearning.com/chap2.html
+            # BP3
             nabla_b[-l] = delta
+            # BP4
             nabla_w[-l] = np.dot(delta, activations[-l-1].transpose())
         return (nabla_b, nabla_w)
 
+    # used only for printing output of progress.
     def evaluate(self, test_data):
         """Return the number of test inputs for which the neural
         network outputs the correct result. Note that the neural
@@ -160,11 +183,13 @@ class Network(object):
                         for (x, y) in test_data]
         return sum(int(x == y) for (x, y) in test_results)
 
+    # derivative of MSE function.
     def cost_derivative(self, output_activations, y):
         """Return the vector of partial derivatives \partial C_x /
         \partial a for the output activations."""
         return (output_activations-y)
 
+    # used for printing output of progress only.
     def feedforward(self, a):
         """Return the output of the network if ``a`` is input."""
         for b, w in zip(self.biases, self.weights):
