@@ -34,15 +34,18 @@ class Network(object):
         ever used in computing the outputs from later layers."""
         self.num_layers = len(sizes)
         self.sizes = sizes
+        # mnist example biases
+        # matrix size: y by 1. values: mean 0 and variance 1.
+        # net.biases[0].size = 30
+        # net.biases[1].size = 1
         self.biases = [np.random.randn(y, 1) for y in sizes[1:]]
+        # mnist example weights
+        # matrix size: y by x. values: mean 0 and variance 1.
+        # net.weights[0].size = 23520 (784*30)
+        # net.weights[1].size = 300 (30*10)
         self.weights = [np.random.randn(y, x)
                         for x, y in zip(sizes[:-1], sizes[1:])]
 
-    def feedforward(self, a):
-        """Return the output of the network if ``a`` is input."""
-        for b, w in zip(self.biases, self.weights):
-            a = sigmoid(np.dot(w, a)+b)
-        return a
 
     def SGD(self, training_data, epochs, mini_batch_size, eta,
             test_data=None):
@@ -55,20 +58,28 @@ class Network(object):
         epoch, and partial progress printed out.  This is useful for
         tracking progress, but slows things down substantially."""
 
+        # 50k zipped list of 784*1 arrays containing the input of photos
         training_data = list(training_data)
         n = len(training_data)
 
+        # only used for outputting progress.
         if test_data:
             test_data = list(test_data)
             n_test = len(test_data)
 
+        # epoch is the number of mini-batches to go through (10).
         for j in range(epochs):
             random.shuffle(training_data)
+            # range(0, 50k, 10), means 0, 10, 20....50k (steps of 10 to 50k)
+            # training_data[k:k+10] means segment training_data in groups of 10
             mini_batches = [
                 training_data[k:k+mini_batch_size]
                 for k in range(0, n, mini_batch_size)]
+            # each run of update_mini_batch runs stochastic gradient descent
+            # on 10 training points (a mini batch).
             for mini_batch in mini_batches:
                 self.update_mini_batch(mini_batch, eta)
+            # for outputting progress
             if test_data:
                 print("Epoch {} : {} / {}".format(j,self.evaluate(test_data),n_test));
             else:
@@ -79,12 +90,26 @@ class Network(object):
         gradient descent using backpropagation to a single mini batch.
         The ``mini_batch`` is a list of tuples ``(x, y)``, and ``eta``
         is the learning rate."""
+        # essentially one run of stochastic gradient descent.
+        # initialize cost gradient wrt biases.
         nabla_b = [np.zeros(b.shape) for b in self.biases]
+        # initialize bias gradient wrt weights.
         nabla_w = [np.zeros(w.shape) for w in self.weights]
+        # loop through each training input in batch with input x and expected output y
+        # again, x is the array of shape 784*1 with values 0 to 1 for shade.
         for x, y in mini_batch:
+            # warning: this backprop code actually does feedforward as well
+            # so most of the SGD logic is within backprop!
+            # return the delta cost gradients wrt all bias and weight for one sample.
             delta_nabla_b, delta_nabla_w = self.backprop(x, y)
+            # these are used to update cost gradients after all 10 samples' are returned.
+            # this is essentially the summed effect of all delta cost gradients from 10 samples.
             nabla_b = [nb+dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
             nabla_w = [nw+dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
+        # update the weights and baises by multiplying by the summed effect divided by 
+        # the total number of training samples in a mini batch. multiply by learning rate. 
+        # then subtract this value from the current weights and biases. 
+        # remember: the initial weights and baises are randomly distributed as (0,1).
         self.weights = [w-(eta/len(mini_batch))*nw
                         for w, nw in zip(self.weights, nabla_w)]
         self.biases = [b-(eta/len(mini_batch))*nb
@@ -138,6 +163,12 @@ class Network(object):
         """Return the vector of partial derivatives \partial C_x /
         \partial a for the output activations."""
         return (output_activations-y)
+
+    def feedforward(self, a):
+        """Return the output of the network if ``a`` is input."""
+        for b, w in zip(self.biases, self.weights):
+            a = sigmoid(np.dot(w, a)+b)
+        return a
 
 #### Miscellaneous functions
 def sigmoid(z):
