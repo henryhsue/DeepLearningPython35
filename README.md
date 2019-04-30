@@ -13,3 +13,4 @@ In test.py there are examples of networks configurations with proper comments. I
 ## Playing around or debugging with ipython:
 Load IPython and run `load startup.py`. 
 
+
