@@ -23,6 +23,7 @@ import numpy as np
 
 #### Define the quadratic and cross-entropy cost functions
 
+# cost for a single neuron where y and a are between 0 and 1.
 class QuadraticCost(object):
 
     @staticmethod
@@ -31,14 +32,17 @@ class QuadraticCost(object):
         ``y``.
 
         """
+        # cost function as the MSE.
         return 0.5*np.linalg.norm(a-y)**2
 
     @staticmethod
     def delta(z, a, y):
         """Return the error delta from the output layer."""
+        # BP1 in backpropagation.
+        # derivative of cost quadratic cost above cross product.
         return (a-y) * sigmoid_prime(z)
 
-
+# cost for a single neuron where y and a are between 0 and 1.
 class CrossEntropyCost(object):
 
     @staticmethod
@@ -51,6 +55,8 @@ class CrossEntropyCost(object):
         to the correct value (0.0).
 
         """
+        # cost function calculated by integrating from cost gradient
+        # for cross entropy.
         return np.sum(np.nan_to_num(-y*np.log(a)-(1-y)*np.log(1-a)))
 
     @staticmethod
@@ -61,6 +67,8 @@ class CrossEntropyCost(object):
         consistent with the delta method for other cost classes.
 
         """
+        # delta of actual and expected in the output layer.
+        # this is the derivative of the cost function.
         return (a-y)
 
 
@@ -96,7 +104,11 @@ class Network(object):
         layers.
 
         """
+        # same as original or large weight initializer.
         self.biases = [np.random.randn(y, 1) for y in self.sizes[1:]]
+        # basically reduce the sandard deviation by dividing by the sqrt of
+        # the number of inputs into a given layer. this is akin to the 
+        # regularization of weights.
         self.weights = [np.random.randn(y, x)/np.sqrt(x)
                         for x, y in zip(self.sizes[:-1], self.sizes[1:])]
 
@@ -116,16 +128,23 @@ class Network(object):
         instead.
 
         """
+        # same as before
         self.biases = [np.random.randn(y, 1) for y in self.sizes[1:]]
+        # same as before, allowing large weights to exist.
         self.weights = [np.random.randn(y, x)
                         for x, y in zip(self.sizes[:-1], self.sizes[1:])]
 
+    # used for early stopping as well as 
+    # output of network activations or calculations of accuracies.
+    # output an n digit of numbers valued from 0 to 1 with on number greater 
+    # than the rest to indicate its index is the predicted result of the network.
     def feedforward(self, a):
         """Return the output of the network if ``a`` is input."""
         for b, w in zip(self.biases, self.weights):
             a = sigmoid(np.dot(w, a)+b)
         return a
 
+    # Stochastic Gradient Descent.
     def SGD(self, training_data, epochs, mini_batch_size, eta,
             lmbda = 0.0,
             evaluation_data=None,
@@ -157,9 +176,11 @@ class Network(object):
         # early stopping functionality:
         best_accuracy=1
 
+        # turn to list
         training_data = list(training_data)
         n = len(training_data)
 
+        # same
         if evaluation_data:
             evaluation_data = list(evaluation_data)
             n_data = len(evaluation_data)
@@ -168,13 +189,16 @@ class Network(object):
         best_accuracy=0
         no_accuracy_change=0
 
+        # initialize lists for tracking these values after each epoch until early stop.
         evaluation_cost, evaluation_accuracy = [], []
         training_cost, training_accuracy = [], []
         for j in range(epochs):
             random.shuffle(training_data)
+            # create lists of size mini_batch_size
             mini_batches = [
                 training_data[k:k+mini_batch_size]
                 for k in range(0, n, mini_batch_size)]
+            # run each minibatch (feedforward, cost calculation, back propagate).
             for mini_batch in mini_batches:
                 self.update_mini_batch(
                     mini_batch, eta, lmbda, len(training_data))
@@ -199,6 +223,7 @@ class Network(object):
                 print("Accuracy on evaluation data: {} / {}".format(self.accuracy(evaluation_data), n_data))
 
             # Early stopping:
+            import ipdb;ipdb.set_trace()
             if early_stopping_n > 0:
                 if accuracy > best_accuracy:
                     best_accuracy = accuracy
@@ -228,11 +253,16 @@ class Network(object):
             delta_nabla_b, delta_nabla_w = self.backprop(x, y)
             nabla_b = [nb+dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
             nabla_w = [nw+dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
+        # apply a regularization parameter to the learning rules.
+        # these decay the weights to prioritize smaller weights then subsequently
+        # shift the weight as before according cost gradient.
         self.weights = [(1-eta*(lmbda/n))*w-(eta/len(mini_batch))*nw
                         for w, nw in zip(self.weights, nabla_w)]
+        # biases doesn't change, as only weight is decayed.
         self.biases = [b-(eta/len(mini_batch))*nb
                        for b, nb in zip(self.biases, nabla_b)]
 
+    # as in network.py, this actually includes feedforward then backpropagation.
     def backprop(self, x, y):
         """Return a tuple ``(nabla_b, nabla_w)`` representing the
         gradient for the cost function C_x.  ``nabla_b`` and
@@ -240,7 +270,10 @@ class Network(object):
         to ``self.biases`` and ``self.weights``."""
         nabla_b = [np.zeros(b.shape) for b in self.biases]
         nabla_w = [np.zeros(w.shape) for w in self.weights]
+
         # feedforward
+
+        # calculate all activations in the network.
         activation = x
         activations = [x] # list to store all the activations, layer by layer
         zs = [] # list to store all the z vectors, layer by layer
@@ -249,9 +282,15 @@ class Network(object):
             zs.append(z)
             activation = sigmoid(z)
             activations.append(activation)
+
         # backward pass
+
+        # calculate the output layer error (aka delta) wrt activations.
+        # depends on which cost function used. these are derivatives.
         delta = (self.cost).delta(zs[-1], activations[-1], y)
+        # BP1
         nabla_b[-1] = delta
+        # BP2
         nabla_w[-1] = np.dot(delta, activations[-2].transpose())
         # Note that the variable l in the loop below is used a little
         # differently to the notation in Chapter 2 of the book.  Here,
@@ -263,10 +302,13 @@ class Network(object):
             z = zs[-l]
             sp = sigmoid_prime(z)
             delta = np.dot(self.weights[-l+1].transpose(), delta) * sp
+            # BP3
             nabla_b[-l] = delta
+            # BP4
             nabla_w[-l] = np.dot(delta, activations[-l-1].transpose())
         return (nabla_b, nabla_w)
 
+    # only in early stopping and in printing output (accuracy) of network.
     def accuracy(self, data, convert=False):
         """Return the number of inputs in ``data`` for which the neural
         network outputs the correct result. The neural network's
@@ -290,10 +332,16 @@ class Network(object):
         mnist_loader.load_data_wrapper.
 
         """
+        # if data is training data.
         if convert:
+            # store results as [(3,3),(3,4),etc....)]
+            # here y is represented as an array and argmax finds index of largest value.
             results = [(np.argmax(self.feedforward(x)), np.argmax(y))
                        for (x, y) in data]
+        # if validation or test data.
         else:
+            # store results as [(3,3),(3,4),etc....)]
+            # here y is represented as an integer.
             results = [(np.argmax(self.feedforward(x)), y)
                         for (x, y) in data]
 
