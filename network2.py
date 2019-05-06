@@ -26,6 +26,7 @@ import numpy as np
 # cost for a single neuron where y and a are between 0 and 1.
 class QuadraticCost(object):
 
+    # used for determining total cost.
     @staticmethod
     def fn(a, y):
         """Return the cost associated with an output ``a`` and desired output
@@ -35,6 +36,7 @@ class QuadraticCost(object):
         # cost function as the MSE.
         return 0.5*np.linalg.norm(a-y)**2
 
+    # used for cost of output layer and BP calculations.
     @staticmethod
     def delta(z, a, y):
         """Return the error delta from the output layer."""
@@ -45,6 +47,7 @@ class QuadraticCost(object):
 # cost for a single neuron where y and a are between 0 and 1.
 class CrossEntropyCost(object):
 
+    # used for determining total cost.
     @staticmethod
     def fn(a, y):
         """Return the cost associated with an output ``a`` and desired output
@@ -59,6 +62,7 @@ class CrossEntropyCost(object):
         # for cross entropy.
         return np.sum(np.nan_to_num(-y*np.log(a)-(1-y)*np.log(1-a)))
 
+    # used for cost of output layer and BP calculations.
     @staticmethod
     def delta(z, a, y):
         """Return the error delta from the output layer.  Note that the
@@ -91,6 +95,8 @@ class Network(object):
         self.default_weight_initializer()
         self.cost=cost
 
+    # this is the recommended initializer now, which has a tighter 
+    # distribution of weights. 
     def default_weight_initializer(self):
         """Initialize each weight using a Gaussian distribution with mean 0
         and standard deviation 1 over the square root of the number of
@@ -108,7 +114,7 @@ class Network(object):
         self.biases = [np.random.randn(y, 1) for y in self.sizes[1:]]
         # basically reduce the sandard deviation by dividing by the sqrt of
         # the number of inputs into a given layer. this is akin to the 
-        # regularization of weights.
+        # regularization of weights in some ways. 
         self.weights = [np.random.randn(y, x)/np.sqrt(x)
                         for x, y in zip(self.sizes[:-1], self.sizes[1:])]
 
@@ -134,7 +140,7 @@ class Network(object):
         self.weights = [np.random.randn(y, x)
                         for x, y in zip(self.sizes[:-1], self.sizes[1:])]
 
-    # used for early stopping as well as 
+    # used for early stopping as well as...
     # output of network activations or calculations of accuracies.
     # output an n digit of numbers valued from 0 to 1 with on number greater 
     # than the rest to indicate its index is the predicted result of the network.
@@ -174,6 +180,7 @@ class Network(object):
         """
 
         # early stopping functionality:
+        # best accuracy is 100%.
         best_accuracy=1
 
         # turn to list
@@ -223,7 +230,6 @@ class Network(object):
                 print("Accuracy on evaluation data: {} / {}".format(self.accuracy(evaluation_data), n_data))
 
             # Early stopping:
-            import ipdb;ipdb.set_trace()
             if early_stopping_n > 0:
                 if accuracy > best_accuracy:
                     best_accuracy = accuracy
@@ -239,6 +245,7 @@ class Network(object):
         return evaluation_cost, evaluation_accuracy, \
             training_cost, training_accuracy
 
+    # similar to network.py but with L2 weight decay regularization.
     def update_mini_batch(self, mini_batch, eta, lmbda, n):
         """Update the network's weights and biases by applying gradient
         descent using backpropagation to a single mini batch.  The
@@ -253,7 +260,7 @@ class Network(object):
             delta_nabla_b, delta_nabla_w = self.backprop(x, y)
             nabla_b = [nb+dnb for nb, dnb in zip(nabla_b, delta_nabla_b)]
             nabla_w = [nw+dnw for nw, dnw in zip(nabla_w, delta_nabla_w)]
-        # apply a regularization parameter to the learning rules.
+        # apply the L2 regularization parameter to the learning rules.
         # these decay the weights to prioritize smaller weights then subsequently
         # shift the weight as before according cost gradient.
         self.weights = [(1-eta*(lmbda/n))*w-(eta/len(mini_batch))*nw
@@ -309,6 +316,7 @@ class Network(object):
         return (nabla_b, nabla_w)
 
     # only in early stopping and in printing output (accuracy) of network.
+    # percentage of correctly predicted.
     def accuracy(self, data, convert=False):
         """Return the number of inputs in ``data`` for which the neural
         network outputs the correct result. The neural network's
@@ -348,6 +356,7 @@ class Network(object):
         result_accuracy = sum(int(x == y) for (x, y) in results)
         return result_accuracy
 
+    # average total cost of all the data sets. cost function + regularization cost.
     def total_cost(self, data, lmbda, convert=False):
         """Return the total cost for the data set ``data``.  The flag
         ``convert`` should be set to False if the data set is the
@@ -357,12 +366,19 @@ class Network(object):
         """
         cost = 0.0
         for x, y in data:
+            # return result output of network
             a = self.feedforward(x)
+            # return y in the form of a, vectors
             if convert: y = vectorized_result(y)
+            # compute average cost using a combination of cost from cross-entropy/quadratic cost AND L2 regularization.
+            # devide by len(data) along the way to get the average.
+            # costs from cost functions
             cost += self.cost.fn(a, y)/len(data)
+            # adding L2 regularization weight decay costs. (costs for having bigger weights).
             cost += 0.5*(lmbda/len(data))*sum(np.linalg.norm(w)**2 for w in self.weights) # '**' - to the power of.
         return cost
 
+    # save the neural network as a json dump
     def save(self, filename):
         """Save the neural network to the file ``filename``."""
         data = {"sizes": self.sizes,
@@ -373,7 +389,7 @@ class Network(object):
         json.dump(data, f)
         f.close()
 
-#### Loading a Network
+#### Loading a Network from a json dump of weights, sizes, biases, cost.
 def load(filename):
     """Load a neural network from the file ``filename``.  Returns an
     instance of Network.
