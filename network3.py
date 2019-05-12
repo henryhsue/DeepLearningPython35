@@ -93,6 +93,7 @@ class Network(object):
         self.y = T.ivector("y")
         init_layer = self.layers[0]
         init_layer.set_inpt(self.x, self.x, self.mini_batch_size)
+        # set input to all layers
         for j in range(1, len(self.layers)): # xrange() was renamed to range() in Python 3.
             prev_layer, layer  = self.layers[j-1], self.layers[j]
             layer.set_inpt(
