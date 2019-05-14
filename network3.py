@@ -183,6 +183,7 @@ class Network(object):
 
 #### Define layer types
 
+# The convolutional and pooling layers learn about local spatial structure in the input training image.
 class ConvPoolLayer(object):
     """Used to create a combination of a convolutional and a max-pooling
     layer.  A more sophisticated implementation would separate the
@@ -234,6 +235,7 @@ class ConvPoolLayer(object):
             pooled_out + self.b.dimshuffle('x', 0, 'x', 'x'))
         self.output_dropout = self.output # no dropout in the convolutional layers
 
+# Fully-connected layer learns at a more abstract level, integrating global information from across the entire image.
 class FullyConnectedLayer(object):
 
     def __init__(self, n_in, n_out, activation_fn=sigmoid, p_dropout=0.0):
@@ -268,6 +270,7 @@ class FullyConnectedLayer(object):
         "Return the accuracy for the mini-batch."
         return T.mean(T.eq(y, self.y_out))
 
+# Output layer using softmax Softmax + LogLikehood cost is typical for image classification problems.
 class SoftmaxLayer(object):
 
     def __init__(self, n_in, n_out, p_dropout=0.0):
