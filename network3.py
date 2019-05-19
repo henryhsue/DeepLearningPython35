@@ -224,6 +224,7 @@ class ConvPoolLayer(object):
             borrow=True)
         self.params = [self.w, self.b]
 
+    # first reshape input for input to layer, and compute the output.
     def set_inpt(self, inpt, inpt_dropout, mini_batch_size):
         self.inpt = inpt.reshape(self.image_shape)
         conv_out = conv.conv2d(
