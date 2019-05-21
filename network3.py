@@ -310,6 +310,7 @@ def size(data):
     return data[0].get_value(borrow=True).shape[0]
 
 def dropout_layer(layer, p_dropout):
+    "drops some of the neurons randomly in this layer as regularization."
     srng = shared_randomstreams.RandomStreams(
         np.random.RandomState(0).randint(999999))
     mask = srng.binomial(n=1, p=1-p_dropout, size=layer.shape)
